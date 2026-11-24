@@ -1,0 +1,50 @@
+PRUEBA DE CONCURRENCIA CON DOS SESIONES (sección 10.5)
+=======================================================
+Objetivo: demostrar que dos personas NO pueden quedarse con el mismo horario aunque lo pidan al mismo tiempo.
+
+IMPORTANTE: phpMyAdmin NO sirve para esta prueba, porque cada vez que presionas "Continuar" cierra la sesión.
+Usa DOS ventanas de la Shell de XAMPP (Panel de XAMPP > botón "Shell"). Cada ventana es una sesión.
+
+En las DOS ventanas escribe primero:
+    mysql -u root clinica
+
+Después sigue este orden EXACTO. Toma una captura de cada ventana al final.
+
+PASO 1 - Ventana A
+    START TRANSACTION;
+    SELECT id FROM agenda WHERE fecha='2031-01-15' AND hora='10:00:00' AND estado IN ('programada','bloqueada') FOR UPDATE;
+  Resultado: "Empty set" (el horario está libre).  A deja la transacción ABIERTA. No cierres.
+
+PASO 2 - Ventana B
+    START TRANSACTION;
+    SELECT id FROM agenda WHERE fecha='2031-01-15' AND hora='10:00:00' AND estado IN ('programada','bloqueada') FOR UPDATE;
+  Resultado: "Empty set" también. B cree que el horario está libre. ESE es el problema de concurrencia.
+
+PASO 3 - Ventana A
+    INSERT INTO agenda (paciente_id, servicio_id, fecha, hora) VALUES ((SELECT MIN(id) FROM paciente), 1, '2031-01-15', '10:00:00');
+  Resultado: A se QUEDA ESPERANDO (el cursor no regresa). Está bloqueada por B. No toques nada.
+
+PASO 4 - Ventana B
+    INSERT INTO agenda (paciente_id, servicio_id, fecha, hora) VALUES ((SELECT MAX(id) FROM paciente), 1, '2031-01-15', '10:00:00');
+  Resultado esperado: InnoDB detecta el interbloqueo y CANCELA una de las dos transacciones:
+    ERROR 1213 (40001): Deadlock found when trying to get lock; try restarting transaction
+  (puede salirle a B o a A; es la base de datos protegiendo la agenda). La otra ventana completa su INSERT.
+  Si en lugar de ese error aparece:  ERROR 1062 (23000): Duplicate entry '2031-01-15 10:00:00' for key 'uq_bloque'
+  también es correcto: es la llave única rechazando la segunda cita.
+
+PASO 5 - La ventana que SÍ completó el INSERT
+    COMMIT;
+
+PASO 6 - Comprobar (en cualquier ventana)
+    SELECT COUNT(*) FROM agenda WHERE fecha='2031-01-15' AND hora='10:00:00' AND estado='programada';
+  Resultado esperado: 1  (nunca 2)
+
+Qué hace el sistema: includes/citas.php atrapa los errores 1062 y 1213 (función errorCita) y muestra al usuario
+"Ese horario acaba de ser ocupado" o "El sistema está ocupado, intenta de nuevo", sin guardar nada a medias.
+
+ESCENARIO 2 (opcional): la cita YA existe y dos personas quieren cancelarla o moverla a la vez.
+  - Crea una cita en ese horario, abre A: START TRANSACTION; SELECT ... estado='programada' FOR UPDATE;
+  - En B ejecuta el mismo SELECT ... FOR UPDATE: B se queda ESPERANDO hasta que A haga COMMIT o ROLLBACK.
+
+LIMPIAR AL TERMINAR (usa una fecha lejana, 2031, para no tocar citas reales):
+    DELETE FROM agenda WHERE fecha='2031-01-15';

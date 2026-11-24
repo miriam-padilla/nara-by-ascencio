@@ -1,0 +1,31 @@
+NARA by Ascencio - ACTUALIZACION COMPLETA (sitio publico + paciente + administradora)
+
+PASOS (en este orden)
+1) Respaldo: en phpMyAdmin, exporta tu base "clinica" (por si acaso).
+2) phpMyAdmin > base "clinica" > pestaña SQL > pega y ejecuta el contenido de  sql/migracion2.sql  (UNA sola vez).
+   (NO ejecutes nara.sql: borra la base.)
+3) Ejecuta de nuevo  sql/privilegios.sql  (agrega permisos nuevos).
+4) Opcional: sql/servicios_extra.sql (agrega Depilacion laser, Emsculpt, HI-FU, PDR Salmon).
+5) Copia las carpetas  includes  y  public  sobre las de tu proyecto, reemplazando archivos.
+   (La carpeta config NO viene incluida: conserva la tuya.)
+6) Entra a  http://localhost/.../public/admin.php  (acceso de la nutriologa y del personal).
+
+NOTAS
+- La foto de la nutriologa ya viene en public/img/nutriologa.jpg; se cambia desde admin.php > "Cambiar foto" (tras iniciar sesion) .
+- Las imagenes que subas en Promociones / Agregar producto o servicio se guardan en public/img/catalogo/.
+- Boton ACTUALIZAR: marca el seguimiento como actualizado, el paciente ve un aviso en su cuenta (Seguimiento) y aparece un boton para enviarle el mensaje por WhatsApp. El envio automatico de SMS/WhatsApp requiere un servicio de pago.
+- Permisos: ahora se definen por tipo de usuario (Visitante, Paciente, Usuario/personal) en la pagina Permisos; el administrador siempre tiene permiso total.
+- Productos y promociones se guardan en la tabla "servicio" (se respeta el maximo de 6 tablas).
+- Archivos que ya no se usan: nada que borrar; calendario, reportes e historial de citas siguen disponibles desde "Otros".
+
+RESPALDOS E INDICES (documentacion de Administracion de BD)
+- sql/indices_y_mantenimiento.sql : crea 4 indices y trae las tareas de mantenimiento y monitoreo.
+- sql/usuario_respaldo.sql        : crea la cuenta "respaldo" (solo lectura) para mysqldump.
+- respaldo/respaldo.bat           : respaldo completo diario (programar a las 22:00 en el Programador de tareas de Windows).
+- respaldo/restaurar.bat          : restaura un respaldo en la base de prueba clinica_prueba y cuenta las filas.
+
+ACTUALIZACIÓN 3 (noviembre)
+- Reemplaza las carpetas includes y public.
+- OPCIONAL (una sola vez): ejecuta sql/migracion3.sql en phpMyAdmin (la duración del servicio ya no se captura).
+- La foto de la nutrióloga ahora se cambia desde admin.php (enlace "Cambiar foto", pide correo y contraseña).
+- Nuevas fotos en public/img: consulta-nutricional, seguimiento, corporal, facial, producto y el collage fondo-panel.jpg.
